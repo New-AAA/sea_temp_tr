@@ -163,7 +163,7 @@ banner instead of silently leaving blank cards.
 into a static copy that needs no Python at all:
 
 ```bash
-python3 seatemp.py publish              # writes site/
+python3 seatemp.py publish              # writes docs/
 python3 seatemp.py publish --serve      # ... and serves it on :8765
 python3 seatemp.py publish --out /var/www/seatemp
 ```
@@ -174,6 +174,10 @@ python3 seatemp.py publish --out /var/www/seatemp
 | `data.json` | The same payload on its own, for other tools. |
 | `observations.csv` | Every reading, joined with its station. |
 | `stations.csv` | Station list with coverage counts. |
+
+The output goes to `docs/` because that is one of only two directories GitHub
+Pages will serve (the other is the repo root), so the published copy is live at
+the Pages URL as soon as it is pushed.
 
 `index.html` carries its payload in an inline `<script type="application/json">`
 instead of calling `/api/data`, and loads nothing from the network — no fonts, no
@@ -205,7 +209,7 @@ Individual steps:
 | `export` | Write `data/observations.csv` and `data/stations.csv`. |
 | `stats` | Summarise the archive. |
 | `serve` | Run the local dashboard (`--host`, `--port`). |
-| `publish` | Freeze the current state into a static site in `site/` (`--out`, `--serve`). |
+| `publish` | Freeze the current state into a static site in `docs/` (`--out`, `--serve`). |
 
 `fetch --refetch` forces re-download of already-cached captures.
 
@@ -308,7 +312,7 @@ data/
   seatemp.db         SQLite database
   observations.csv   flat export
   stations.csv       station list with observation counts
-site/                publish output: index.html, data.json, both CSVs
+docs/                publish output: index.html, data.json, both CSVs
 ```
 
 ## Notes on the source

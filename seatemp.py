@@ -11,7 +11,7 @@
   python3 seatemp.py export   # write data/observations.csv + data/stations.csv
   python3 seatemp.py stats    # summarise what has been collected
   python3 seatemp.py serve    # open the local dashboard in a browser
-  python3 seatemp.py publish  # freeze the current state into a static site
+  python3 seatemp.py publish  # freeze the current state into docs/ as a static site
 """
 import argparse
 import sys
@@ -48,8 +48,8 @@ def main(argv=None) -> int:
                     help="serve/publish --serve: bind address")
     ap.add_argument("--port", type=int, default=8765,
                     help="serve/publish --serve: port")
-    ap.add_argument("--out", default="site",
-                    help="publish: output directory (default: site/)")
+    ap.add_argument("--out", default="docs",
+                    help="publish: output directory (default: docs/)")
     ap.add_argument("--serve", action="store_true",
                     help="publish: also serve the published directory")
     args = ap.parse_args(argv)

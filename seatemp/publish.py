@@ -16,7 +16,9 @@ from . import store
 from .config import DB
 from .serve import HERE, build_payload
 
-OUT = "site"
+# docs/ rather than site/: GitHub Pages serves the repo root or
+# docs/, and nothing else.
+OUT = "docs"
 
 
 def _log(msg: str = "") -> None:
