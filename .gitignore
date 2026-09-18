@@ -1,0 +1,5 @@
+data/raw/
+data/*.csv
+data/seatemp.db*
+__pycache__/
+*.pyc

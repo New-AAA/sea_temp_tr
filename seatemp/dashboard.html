@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Türkiye Deniz Suyu Sıcaklıkları</title>
+<style>
+:root{
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --accent:#2a78d6;
+  --land:#eceae3; --coast:#b9b7ab; --sea:#f4f7fa;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19;
+    --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --accent:#3987e5;
+    --land:#232322; --coast:#45443f; --sea:#141719;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19;
+  --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --accent:#3987e5;
+  --land:#232322; --coast:#45443f; --sea:#141719;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--plane); color:var(--ink);
+  font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding:0 16px 56px;
+}
+.wrap{max-width:1180px;margin:0 auto}
+header{padding:28px 0 18px}
+h1{font-size:21px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--ink-2);font-size:13px;margin:0}
+.card{
+  background:var(--surface); border:1px solid var(--ring);
+  border-radius:10px; padding:18px; margin-bottom:16px;
+}
+.card h2{font-size:14px;margin:0 0 2px;font-weight:600}
+.card .note{color:var(--muted);font-size:12px;margin:0 0 14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:14px 16px}
+.kpi .v{font-size:27px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+.kpi .l{color:var(--ink-2);font-size:12px;margin-top:2px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+label.f{color:var(--ink-2);font-size:12px}
+select,button{
+  font:inherit;font-size:13px;color:var(--ink);background:var(--surface);
+  border:1px solid var(--ring);border-radius:7px;padding:6px 9px;
+}
+button{cursor:pointer}
+button.on{background:var(--accent);color:#fff;border-color:transparent}
+svg{display:block;max-width:100%;height:auto;overflow:visible}
+.tick{fill:var(--muted);font-size:10px}
+.alab{fill:var(--ink-2);font-size:11px}
+.dlab{font-size:11px;font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-size:12px}
+.sw{width:11px;height:11px;border-radius:3px;flex:none}
+#tip{
+  position:fixed;pointer-events:none;opacity:0;transition:opacity .08s;
+  background:var(--surface);color:var(--ink);border:1px solid var(--ring);
+  border-radius:8px;padding:8px 10px;font-size:12px;z-index:50;
+  box-shadow:0 6px 22px rgba(0,0,0,.14);max-width:260px;
+}
+#tip b{font-weight:600}
+#tip .t{color:var(--muted)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:540px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{color:var(--ink-2);font-weight:600;font-size:12px;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--surface)}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.flag{color:var(--muted);font-size:11px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+.empty{color:var(--muted);padding:26px 0;text-align:center;font-size:13px}
+.sdetail{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+@media (max-width:900px){.sdetail{grid-template-columns:1fr}}
+.slist{max-height:360px;overflow:auto;border:1px solid var(--ring);border-radius:8px}
+.slist table{min-width:0}
+.slist th{font-size:11px}
+.slist td,.slist th{padding:5px 10px}
+#errbar{display:none;background:#d03b3b;color:#fff;border-radius:8px;
+  padding:10px 14px;margin:10px 0;font-size:13px}
+.hint{color:var(--muted);font-size:12px;margin:8px 0 0}
+.cmpsel{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cmpone{display:flex;align-items:center;gap:6px}
+.cmpone .dot{width:10px;height:10px;border-radius:3px;flex:none}
+.cmpgrid{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:18px;align-items:start}
+@media (max-width:980px){.cmpgrid{grid-template-columns:1fr}}
+.cmplist{max-height:380px;overflow:auto;border:1px solid var(--ring);border-radius:8px}
+.cmplist table{min-width:0;width:100%}
+.cmplist td,.cmplist th{padding:5px 9px}
+.cmpkey{display:inline-flex;align-items:center;gap:5px}
+.badge{display:inline-flex;align-items:center;justify-content:center;
+  width:17px;height:17px;border-radius:5px;color:#fff;font-size:11px;
+  font-weight:700;flex:none}
+.stat div{max-width:230px}
+.cmplist th{font-size:11px}
+.stat{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 0}
+.stat div{font-size:12px;color:var(--ink-2)}
+.stat b{display:block;font-size:16px;color:var(--ink);font-weight:600;
+  font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div style="display:flex;align-items:flex-start;gap:16px">
+    <div style="flex:1">
+      <h1>Türkiye Deniz Suyu Sıcaklıkları</h1>
+      <p class="sub">MGM Piri Reis arşivi &mdash; Wayback Machine ile 2021'den bugüne</p>
+    </div>
+    <span class="sub" style="align-self:center;font-variant-numeric:tabular-nums"
+      title="Sunucudaki dosyanın sürümü">v{{BUILD}}</span>
+    <button id="theme" title="Açık / koyu tema">◐</button>
+  </div>
+</header>
+
+<div id="errbar"></div>
+<div class="kpis" id="kpis"></div>
+
+<div class="card">
+  <h2>İstasyon haritası</h2>
+  <p class="note" id="mapnote"></p>
+  <div class="row">
+    <label class="f" for="dsel">Tarih</label>
+    <select id="dsel"></select>
+    <button id="latest">En son</button>
+    <span style="flex:1"></span>
+    <label class="f">Renk ölçeği</label>
+    <button id="sc-fix" class="on">Sabit 0–32°</button>
+    <button id="sc-rel">O güne göre</button>
+  </div>
+  <div id="map" style="min-height:120px"></div>
+  <div id="maplegend"></div>
+</div>
+
+<div class="card">
+  <h2>Mevsimsel ortalama (denize göre)</h2>
+  <p class="note">Her ayın tüm yıllardaki ortalaması. Nokta = o ayda ölçüm var.</p>
+  <div id="clim"></div>
+  <div class="legend" id="climleg"></div>
+</div>
+
+<div class="card">
+  <h2>İstasyon geçmişi</h2>
+  <p class="note" id="stnote">Bir istasyon seçin ya da haritadan tıklayın.</p>
+  <div class="row">
+    <label class="f" for="ssel">İstasyon</label>
+    <select id="ssel"></select>
+    <button id="scsv">CSV indir</button>
+  </div>
+  <div class="sdetail">
+    <div>
+      <div id="station"></div>
+      <p class="hint">Her nokta arşivde kayıtlı tek bir okumadır; ölçümler
+        düzenli aralıklarla değil, arşivin yakaladığı günlerde alınmıştır.</p>
+    </div>
+    <div>
+      <div class="slist"><table id="stab"></table></div>
+      <p class="hint" id="stabnote"></p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>İstasyon karşılaştırma</h2>
+  <p class="note">En fazla üç istasyon. Renkler seçim kutusuna bağlıdır, sıraya
+    değil — bir istasyonu değiştirince diğerlerinin rengi değişmez.</p>
+  <div class="row cmpsel" id="cmpsel"></div>
+  <div class="row">
+    <button id="cmp-season" class="on">Mevsimsel ortalama</button>
+    <button id="cmp-series">Tüm ölçümler</button>
+    <span style="flex:1"></span>
+    <button id="cmpcsv">CSV indir</button>
+  </div>
+  <div class="cmpgrid">
+    <div>
+      <div id="cmpchart"></div>
+      <div class="legend" id="cmpleg"></div>
+      <div class="stat" id="cmpstat"></div>
+    </div>
+    <div>
+      <div class="cmplist"><table id="cmptab"></table></div>
+      <p class="hint" id="cmptabnote"></p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Ölçümler</h2>
+  <p class="note" id="tabnote"></p>
+  <div class="scroll"><table id="tab"></table></div>
+</div>
+</div>
+<div id="tip"></div>
+
+<!--PAYLOAD-->
+<script>
+function fail(msg){
+  const b=document.getElementById("errbar");
+  if(b){b.style.display="block";
+    b.textContent="Sayfa hatası: "+msg+" — sayfayı yenileyin (Ctrl+Shift+R).";}
+}
+addEventListener("error",e=>fail(e.message));
+addEventListener("unhandledrejection",e=>fail(e.reason&&e.reason.message||e.reason));
+
+const BASINS=["Karadeniz","Marmara","Ege","Akdeniz","Van Gölü"];
+const CSSVAR=["--s1","--s2","--s3","--s4","--s5"];
+const MONTHS=["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+// Sequential blue, light -> dark = cool -> warm (documented ramp steps).
+const SEQ_L=["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+// On a dark surface the ramp runs dark -> bright with magnitude.
+const SEQ_D=[...SEQ_L].reverse();
+// Fixed temperature domain, so every date is coloured on the same scale and
+// February is directly comparable with August.
+const TMIN=0, TMAX=32;
+
+let DATA=null, byStation=new Map(), dates=[], curDate=null, curStation=null;
+let scaleMode="fixed";   // "fixed" = same 0-32 every date; "rel" = stretch to the date
+let sortKey="temp", sortDir=-1;
+let sSortKey="t", sSortDir=-1;     // station list: newest measurement first
+// Comparison: at most three stations. The palette's first three slots are the
+// ones validated for all-pairs separation (the dot view is an all-pairs form),
+// so three is a colour-safety limit, not an arbitrary one.
+let cmp=[null,null,null], cmpView="season";
+
+const isDark=()=>{
+  const t=document.documentElement.getAttribute("data-theme");
+  if(t) return t==="dark";
+  return matchMedia("(prefers-color-scheme: dark)").matches;
+};
+const seq=()=>isDark()?SEQ_D:SEQ_L;
+const cvar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+// Interpolate the documented ramp steps rather than snapping, so a narrow
+// same-day spread still separates.
+const hex2rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+function ramp(f){
+  const r=seq(); f=Math.max(0,Math.min(1,f));
+  const x=f*(r.length-1), i=Math.min(r.length-2,Math.floor(x)), u=x-i;
+  const a=hex2rgb(r[i]), b=hex2rgb(r[i+1]);
+  return `rgb(${a.map((v,j)=>Math.round(v+(b[j]-v)*u)).join(",")})`;
+}
+let colDom=[TMIN,TMAX];
+const tempColor=t=>ramp((t-colDom[0])/(colDom[1]-colDom[0]||1));
+const svgEl=(n,a={})=>{const e=document.createElementNS("http://www.w3.org/2000/svg",n);
+  for(const k in a) e.setAttribute(k,a[k]); return e;};
+const fmtT=t=>t.toFixed(1).replace(".",",")+" °C";
+const fmtD=s=>{const[d,h]=s.split("T");const[y,m,dd]=d.split("-");
+  return dd+" "+MONTHS[+m-1]+" "+y+(h?" "+h:"");};
+
+// theme: URL param wins, then the stored choice, else the OS setting
+(function(){
+  const q=new URLSearchParams(location.search).get("theme");
+  let t=q||localStorage.getItem("seatemp-theme");
+  if(t==="dark"||t==="light") document.documentElement.setAttribute("data-theme",t);
+})();
+addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("theme").onclick=()=>{
+    const cur=document.documentElement.getAttribute("data-theme")
+      || (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+    const next=cur==="dark"?"light":"dark";
+    document.documentElement.setAttribute("data-theme",next);
+    try{localStorage.setItem("seatemp-theme",next);}catch(e){}
+    if(DATA) renderAll();
+  };
+});
+
+const tip=document.getElementById("tip");
+function showTip(ev,html){
+  tip.innerHTML=html; tip.style.opacity=1;
+  const r=tip.getBoundingClientRect();
+  let x=ev.clientX+14, y=ev.clientY-10;
+  if(x+r.width>innerWidth-8) x=ev.clientX-r.width-14;
+  if(y+r.height>innerHeight-8) y=innerHeight-r.height-8;
+  tip.style.left=Math.max(8,x)+"px"; tip.style.top=Math.max(8,y)+"px";
+}
+const hideTip=()=>tip.style.opacity=0;
+
+// ---------- load ----------
+// Live, the payload comes from the local server. A published copy carries the
+// same JSON inline, so that file needs no server at all and opens from disk.
+const inlineData=document.getElementById("payload");
+(inlineData
+  ? Promise.resolve().then(()=>JSON.parse(inlineData.textContent))
+  : fetch("/api/data").then(r=>{
+      if(!r.ok) throw new Error("/api/data "+r.status);
+      return r.json();
+    })
+).then(d=>{
+  DATA=d;
+  const o=d.obs, S=new Map(d.stations.map(s=>[s.id,s]));
+  for(let i=0;i<o.station.length;i++){
+    const st=S.get(o.station[i]); if(!st) continue;
+    if(!byStation.has(st.id)) byStation.set(st.id,[]);
+    byStation.get(st.id).push({t:o.time[i],v:o.temp[i],f:o.flag[i],
+      inf:(o.inf?o.inf[i]:0),st});
+  }
+  dates=[...new Set(o.time.map(t=>t.slice(0,10)))].sort();
+  curDate=dates[dates.length-1];
+  // Deep-linkable view: ?date=YYYY-MM-DD & ?scale=rel|fixed & ?station=<id>
+  const q=new URLSearchParams(location.search);
+  if(dates.includes(q.get("date"))) curDate=q.get("date");
+  if(q.get("scale")==="rel") scaleMode="rel";
+  const qs=+q.get("station"); if(qs && d.stations.some(x=>x.id===qs)) curStation=qs;
+  const qc=(q.get("cmp")||"").split(",").map(Number).filter(n=>n&&d.stations.some(x=>x.id===n));
+  qc.slice(0,3).forEach((id,i)=>cmp[i]=id);
+  if(q.get("cmpview")==="series") cmpView="series";
+  initControls(); renderAll();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",renderAll);
+}).catch(e=>fail(e.message));
+
+function initControls(){
+  const ds=document.getElementById("dsel");
+  ds.innerHTML=dates.slice().reverse().map(d=>`<option value="${d}">${fmtD(d)}</option>`).join("");
+  ds.value=curDate;
+  ds.onchange=e=>{curDate=e.target.value; renderMap(); renderTable();};
+  document.getElementById("latest").onclick=()=>{
+    curDate=dates[dates.length-1]; ds.value=curDate; renderMap(); renderTable();};
+  const fx=document.getElementById("sc-fix"), rl=document.getElementById("sc-rel");
+  fx.classList.toggle("on",scaleMode==="fixed");
+  rl.classList.toggle("on",scaleMode==="rel");
+  fx.onclick=()=>{scaleMode="fixed";fx.classList.add("on");rl.classList.remove("on");renderMap();renderStation();};
+  rl.onclick=()=>{scaleMode="rel";rl.classList.add("on");fx.classList.remove("on");renderMap();renderStation();};
+  const ss=document.getElementById("ssel");
+  ss.innerHTML='<option value="">— seçin —</option>'+
+    DATA.stations.map(s=>`<option value="${s.id}">${s.ad}</option>`).join("");
+  ss.onchange=e=>{curStation=e.target.value?+e.target.value:null; renderStation();};
+  if(curStation) ss.value=curStation;
+  document.getElementById("scsv").onclick=downloadStationCsv;
+  defaultCompare(); initCompare();
+}
+
+function guard(name,fn){
+  try{ fn(); }
+  catch(e){ fail(name+": "+(e&&e.message||e)); console.error(name,e); }
+}
+function renderAll(){
+  guard("kpi",renderKpis); guard("harita",renderMap); guard("mevsimsel",renderClim);
+  guard("istasyon",renderStation); guard("karşılaştırma",renderCompare);
+  guard("tablo",renderTable);
+}
+
+// Some browser/layout combinations give an inline SVG zero height even with a
+// viewBox and explicit attributes. Measure after insertion and pin a pixel
+// height if that happened, so a chart can never silently collapse.
+function ensureHeight(svg,W,H){
+  requestAnimationFrame(()=>{
+    const r=svg.getBoundingClientRect();
+    if(r.height>2) return;
+    const w=r.width || svg.parentNode.getBoundingClientRect().width || W;
+    svg.style.height=Math.round(w*H/W)+"px";
+  });
+}
+
+// ---------- KPIs ----------
+function renderKpis(){
+  const o=DATA.obs, n=o.temp.length;
+  const ok=o.temp.filter((_,i)=>!o.flag[i]);
+  const latest=readingsFor(dates[dates.length-1]);
+  const warm=latest.length?latest.reduce((a,b)=>a.v>b.v?a:b):null;
+  const k=[
+    [n.toLocaleString("tr"),"ölçüm"],
+    [DATA.stations.length,"istasyon"],
+    [dates.length,"farklı gün"],
+    [(ok.reduce((a,b)=>a+b,0)/ok.length).toFixed(1).replace(".",",")+" °C","ortalama"],
+    [warm?fmtT(warm.v):"—","en sıcak (son gün)"],
+  ];
+  document.getElementById("kpis").innerHTML=k.map(([v,l])=>
+    `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+}
+
+// one reading per station for a given day (the latest that day)
+function readingsFor(day){
+  const out=new Map();
+  for(const[id,rows]of byStation){
+    for(const r of rows) if(r.t.startsWith(day)){
+      const p=out.get(id); if(!p||r.t>p.t) out.set(id,r);
+    }
+  }
+  return [...out.values()];
+}
+
+// ---------- map ----------
+function renderMap(){
+  const rows=readingsFor(curDate).filter(r=>!r.f);
+  const host=document.getElementById("map"); host.innerHTML="";
+  if(scaleMode==="fixed"||rows.length<2){ colDom=[TMIN,TMAX]; }
+  else{
+    const vs=rows.map(r=>r.v);
+    let lo=Math.floor(Math.min(...vs)), hi=Math.ceil(Math.max(...vs));
+    if(hi-lo<1) hi=lo+1;
+    colDom=[lo,hi];
+  }
+  document.getElementById("mapnote").textContent=
+    `Konum = gerçek koordinat; renk = su sıcaklığı (${
+      scaleMode==="fixed"?"sabit 0–32 °C — tarihler karşılaştırılabilir"
+                         :`bu güne göre ${colDom[0]}–${colDom[1]} °C — tarihler karşılaştırılamaz`
+    }). ${rows.length} istasyon.`;
+  if(!rows.length){host.innerHTML='<p class="empty">Bu tarihte ölçüm yok.</p>';return;}
+
+  // Bounds cover the coastline as well as the stations, so no land is clipped.
+  const geo=(DATA.geo&&DATA.geo.land&&DATA.geo.land.length)?DATA.geo:null;
+  const lats=DATA.stations.map(s=>s.lat), lons=DATA.stations.map(s=>s.lon);
+  if(geo) for(const ring of geo.land) for(const p of ring){lons.push(p[0]);lats.push(p[1]);}
+  const pad=0.15;
+  const la0=Math.min(...lats)-pad, la1=Math.max(...lats)+pad;
+  const lo0=Math.min(...lons)-pad, lo1=Math.max(...lons)+pad;
+  const k=Math.cos((la0+la1)/2*Math.PI/180);          // equirectangular correction
+  const P={t:10,r:10,b:24,l:10}, W=1100;
+  const iw=W-P.l-P.r, ih=iw*((la1-la0)/((lo1-lo0)*k));
+  const H=ih+P.t+P.b;
+  const X=lo=>P.l+(lo-lo0)/(lo1-lo0)*iw;
+  const Y=la=>P.t+(la1-la)/(la1-la0)*ih;
+  const ringPath=r=>r.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join(" ")+"Z";
+
+  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`,width:W,height:H,
+    preserveAspectRatio:"xMidYMid meet",style:"width:100%;height:auto",role:"img",
+    "aria-label":"İstasyon haritası, renk su sıcaklığını gösterir"});
+  // sea plane, then land, then the lake: basemap is chrome and stays recessive
+  svg.appendChild(svgEl("rect",{x:0,y:0,width:W,height:H,fill:cvar("--sea"),rx:6}));
+  if(geo){
+    for(const ring of geo.land)
+      svg.appendChild(svgEl("path",{d:ringPath(ring),fill:cvar("--land"),
+        stroke:cvar("--coast"),"stroke-width":.8,"stroke-linejoin":"round"}));
+    for(const ring of (geo.lakes||[]))
+      svg.appendChild(svgEl("path",{d:ringPath(ring),fill:cvar("--sea"),
+        stroke:cvar("--coast"),"stroke-width":.8,"stroke-linejoin":"round"}));
+  }
+  // every station as a faint ghost, so gaps in a day's coverage are visible
+  for(const s of DATA.stations)
+    svg.appendChild(svgEl("circle",{cx:X(s.lon),cy:Y(s.lat),r:2.5,
+      fill:cvar("--coast"),opacity:.55}));
+
+  for(const r of rows.sort((a,b)=>a.v-b.v)){
+    const g=svgEl("g",{style:"cursor:pointer"});
+    g.appendChild(svgEl("circle",{cx:X(r.st.lon),cy:Y(r.st.lat),r:7,
+      fill:tempColor(r.v),stroke:cvar("--surface"),"stroke-width":2}));
+    g.addEventListener("mousemove",e=>showTip(e,
+      `<b>${r.st.ad}</b><br>${fmtT(r.v)}<br>
+       <span class="t">${r.st.basin} · ${r.st.il}<br>${fmtD(r.t)}</span>`));
+    g.addEventListener("mouseleave",hideTip);
+    g.addEventListener("click",()=>{
+      curStation=r.st.id; document.getElementById("ssel").value=r.st.id;
+      renderStation();
+      document.getElementById("station").scrollIntoView({behavior:"smooth",block:"center"});
+    });
+    svg.appendChild(g);
+  }
+  host.appendChild(svg); ensureHeight(svg,W,H);
+
+  // continuous legend
+  const lw=260,lh=10, ls=svgEl("svg",{viewBox:`0 0 ${lw} 34`,width:lw,height:34,
+    preserveAspectRatio:"xMinYMid meet",style:`width:${lw}px;height:34px`});
+  const defs=svgEl("defs"), grad=svgEl("linearGradient",{id:"g1"});
+  seq().forEach((c,i)=>grad.appendChild(svgEl("stop",
+    {offset:(i/(seq().length-1)*100)+"%","stop-color":c})));
+  defs.appendChild(grad); ls.appendChild(defs);
+  ls.appendChild(svgEl("rect",{x:0,y:4,width:lw,height:lh,rx:3,fill:"url(#g1)"}));
+  const [d0,d1]=colDom, step=(d1-d0)/4;
+  [0,1,2,3,4].map(i=>d0+i*step).forEach(t=>{
+    const x=(t-d0)/(d1-d0)*lw;
+    const tx=svgEl("text",{x:Math.min(lw-8,Math.max(6,x)),y:28,
+      "text-anchor":"middle",class:"tick"});
+    tx.textContent=(Math.round(t*10)/10)+"°"; ls.appendChild(tx);
+  });
+  const ml=document.getElementById("maplegend"); ml.innerHTML=""; ml.appendChild(ls);
+}
+
+// ---------- seasonal climatology ----------
+function renderClim(){
+  const acc={};
+  for(const b of BASINS) acc[b]=Array.from({length:12},()=>[]);
+  for(const[,rows]of byStation) for(const r of rows){
+    if(r.f||!acc[r.st.basin]) continue;
+    acc[r.st.basin][+r.t.slice(5,7)-1].push(r.v);
+  }
+  const series=BASINS.map((b,i)=>({
+    name:b, color:cvar(CSSVAR[i]),
+    pts:acc[b].map((v,m)=>v.length?{m,y:v.reduce((a,c)=>a+c,0)/v.length}:null).filter(Boolean)
+  })).filter(s=>s.pts.length);
+
+  const P={t:26,r:62,b:28,l:34},W=560,H=310,iw=W-P.l-P.r,ih=H-P.t-P.b;
+  const all=series.flatMap(s=>s.pts.map(p=>p.y));
+  const y0=Math.floor(Math.min(...all)/5)*5, y1=Math.ceil(Math.max(...all)/5)*5;
+  const X=m=>P.l+m/11*iw, Y=v=>P.t+(y1-v)/(y1-y0)*ih;
+
+  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`,width:W,height:H,
+    preserveAspectRatio:"xMidYMid meet",style:"width:100%;height:auto",role:"img",
+    "aria-label":"Denizlere göre aylık ortalama su sıcaklığı"});
+  for(let v=y0;v<=y1;v+=5){
+    svg.appendChild(svgEl("line",{x1:P.l,x2:P.l+iw,y1:Y(v),y2:Y(v),
+      stroke:cvar("--grid"),"stroke-width":1}));
+    const t=svgEl("text",{x:P.l-7,y:Y(v)+3,"text-anchor":"end",class:"tick"});
+    t.textContent=v; svg.appendChild(t);
+  }
+  MONTHS.forEach((m,i)=>{ if(i%2) return;
+    const t=svgEl("text",{x:X(i),y:H-P.b+16,"text-anchor":"middle",class:"tick"});
+    t.textContent=m; svg.appendChild(t);
+  });
+  const yl=svgEl("text",{x:P.l-7,y:P.t-11,"text-anchor":"end",class:"alab"});
+  yl.textContent="°C"; svg.appendChild(yl);
+
+  for(const s of series){
+    svg.appendChild(svgEl("path",{d:s.pts.map((p,i)=>(i?"L":"M")+X(p.m)+" "+Y(p.y)).join(" "),
+      fill:"none",stroke:s.color,"stroke-width":2,
+      "stroke-linejoin":"round","stroke-linecap":"round"}));
+    for(const p of s.pts){
+      const c=svgEl("circle",{cx:X(p.m),cy:Y(p.y),r:4,fill:s.color,
+        stroke:cvar("--surface"),"stroke-width":2});
+      c.addEventListener("mousemove",e=>showTip(e,
+        `<b>${s.name}</b><br>${MONTHS[p.m]} ortalaması<br>${fmtT(p.y)}`));
+      c.addEventListener("mouseleave",hideTip);
+      svg.appendChild(c);
+    }
+  }
+  // Push the end-of-line labels apart so none overlap, then leader-line each
+  // back to its own series.
+  const labs=series.map(s=>{const p=s.pts[s.pts.length-1];
+    return {name:s.name,color:s.color,x:X(p.m),y0:Y(p.y),y:Y(p.y)};})
+    .sort((a,b)=>a.y-b.y);
+  const GAP=13;
+  for(let i=1;i<labs.length;i++)
+    if(labs[i].y-labs[i-1].y<GAP) labs[i].y=labs[i-1].y+GAP;
+  const over=labs.length?labs[labs.length-1].y-(H-P.b):0;
+  if(over>0) for(const l of labs) l.y-=over;
+  for(const l of labs){
+    if(Math.abs(l.y-l.y0)>1.5)
+      svg.appendChild(svgEl("path",{d:`M${l.x+3} ${l.y0} L${l.x+7} ${l.y}`,
+        stroke:l.color,"stroke-width":1,fill:"none",opacity:.55}));
+    const t=svgEl("text",{x:l.x+9,y:l.y+3,class:"dlab",fill:l.color});
+    t.textContent=l.name; svg.appendChild(t);
+  }
+  const host=document.getElementById("clim"); host.innerHTML=""; host.appendChild(svg);
+  ensureHeight(svg,W,H);
+  document.getElementById("climleg").innerHTML=series.map(s=>
+    `<span><i class="sw" style="background:${s.color}"></i>${s.name}</span>`).join("");
+}
+
+// ---------- station history ----------
+function renderStation(){
+  const host=document.getElementById("station"), note=document.getElementById("stnote");
+  host.innerHTML="";
+  if(!curStation){
+    note.textContent="Bir istasyon seçin ya da haritadan tıklayın.";
+    host.innerHTML='<p class="empty">Seçili istasyon yok.</p>';
+    document.getElementById("stab").innerHTML="";
+    document.getElementById("stabnote").textContent="";
+    return;
+  }
+  const all=(byStation.get(curStation)||[]).slice().sort((a,b)=>a.t<b.t?-1:1);
+  const rows=all.filter(r=>!r.f);
+  const st=DATA.stations.find(s=>s.id===curStation);
+  note.textContent=`${st.ad} — ${st.basin}, ${st.il} / ${st.ilce}. `+
+    `${all.length} ölçüm, ${new Set(all.map(r=>r.t.slice(0,10))).size} farklı gün.`;
+  renderStationTable(all,st);
+  if(!rows.length){host.innerHTML='<p class="empty">Ölçüm yok.</p>';return;}
+
+  const P={t:12,r:14,b:28,l:34},W=560,H=300,iw=W-P.l-P.r,ih=H-P.t-P.b;
+  const ts=rows.map(r=>Date.parse(r.t+":00Z"));
+  const t0=Math.min(...ts), t1=Math.max(...ts);
+  const vs=rows.map(r=>r.v);
+  const y0=Math.floor(Math.min(...vs)/5)*5, y1=Math.ceil(Math.max(...vs)/5)*5;
+  const X=t=>P.l+(t1===t0?.5:(t-t0)/(t1-t0))*iw, Y=v=>P.t+(y1-v)/(y1-y0)*ih;
+
+  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`,width:W,height:H,
+    preserveAspectRatio:"xMidYMid meet",style:"width:100%;height:auto",role:"img",
+    "aria-label":st.ad+" istasyonu ölçümleri"});
+  for(let v=y0;v<=y1;v+=5){
+    svg.appendChild(svgEl("line",{x1:P.l,x2:P.l+iw,y1:Y(v),y2:Y(v),
+      stroke:cvar("--grid"),"stroke-width":1}));
+    const t=svgEl("text",{x:P.l-7,y:Y(v)+3,"text-anchor":"end",class:"tick"});
+    t.textContent=v; svg.appendChild(t);
+  }
+  const years=[...new Set(rows.map(r=>r.t.slice(0,4)))];
+  for(const y of years){
+    const x=X(Date.parse(y+"-01-01T00:00:00Z"));
+    if(x<P.l-2||x>P.l+iw+2) continue;
+    const t=svgEl("text",{x,y:H-P.b+16,"text-anchor":"middle",class:"tick"});
+    t.textContent=y; svg.appendChild(t);
+  }
+  // Points only, never joined: coverage is episodic and a line would imply
+  // continuous sampling that does not exist.
+  for(const r of rows){
+    const c=svgEl("circle",{cx:X(Date.parse(r.t+":00Z")),cy:Y(r.v),r:4,
+      fill:ramp((r.v-TMIN)/(TMAX-TMIN)),stroke:cvar("--surface"),"stroke-width":1.5});
+    c.addEventListener("mousemove",e=>showTip(e,`<b>${fmtT(r.v)}</b><br><span class="t">${fmtD(r.t)}</span>`));
+    c.addEventListener("mouseleave",hideTip);
+    svg.appendChild(c);
+  }
+  host.appendChild(svg); ensureHeight(svg,W,H);
+}
+
+// ---------- station measurement list ----------
+function renderStationTable(all,st){
+  const tab=document.getElementById("stab");
+  const rows=all.slice().sort((a,b)=>{
+    const x=sSortKey==="t"?a.t:a.v, y=sSortKey==="t"?b.t:b.v;
+    return (x<y?-1:x>y?1:0)*sSortDir;
+  });
+  const hdr=(k,l,cls)=>
+    `<th data-k="${k}" class="${cls||''}">${l}${sSortKey===k?(sSortDir>0?" ↑":" ↓"):""}</th>`;
+  tab.innerHTML="<thead><tr>"+hdr("t","Tarih")+hdr("v","°C","n")+
+    "</tr></thead><tbody>"+
+    rows.map(r=>`<tr><td>${r.inf
+        ? `<span title="Tarih, arşiv kayıt saatinden çıkarıldı (±1 gün belirsizlik)">≈ </span>`
+        : ""}${fmtD(r.t)}</td>
+      <td class="n">${fmtT(r.v)}${r.f?' <span class="flag" title="şüpheli ölçüm">⚑</span>':""}</td></tr>`
+    ).join("")+"</tbody>";
+  tab.querySelectorAll("th").forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(k===sSortKey) sSortDir=-sSortDir; else {sSortKey=k;sSortDir=-1;}
+    renderStationTable(all,st);
+  });
+  const nf=all.filter(r=>r.f).length, ni=all.filter(r=>r.inf).length;
+  document.getElementById("stabnote").textContent=
+    `${all.length} ölçüm listeleniyor${nf?`; ${nf} tanesi şüpheli (⚑) ve grafiğe alınmadı`:""}`+
+    `${ni?`; ${ni} tanesinin tarihi (≈) arşiv kaydından çıkarıldı`:""}. `+
+    `Başlığa tıklayarak sıralayın.`;
+}
+
+function downloadStationCsv(){
+  if(!curStation) return;
+  const st=DATA.stations.find(s=>s.id===curStation);
+  const all=(byStation.get(curStation)||[]).slice().sort((a,b)=>a.t<b.t?-1:1);
+  const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const csv=["ist_no,istasyon,deniz,il,ilce,enlem,boylam,veri_zamani,sicaklik_c,qc_flag,tarih_cikarildi"]
+    .concat(all.map(r=>[st.id,esc(st.ad),esc(st.basin),esc(st.il),esc(st.ilce),
+      st.lat,st.lon,r.t,r.v,r.f?1:0,r.inf?1:0].join(","))).join("\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const a=document.createElement("a");
+  a.href=url; a.download=`seatemp_${st.id}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+// ---------- station comparison ----------
+const cmpColor=i=>cvar(CSSVAR[i]);          // colour follows the slot, not the rank
+const CMPKEY=["A","B","C"];
+const shortName=(n,k=26)=>n.length>k?n.slice(0,k-1)+"…":n;
+const cmpSel=()=>cmp.map((id,i)=>({id,i}))
+  .filter(x=>x.id && byStation.has(x.id))
+  .map(x=>({...x, st:DATA.stations.find(s=>s.id===x.id), color:cmpColor(x.i)}));
+
+// one reading per station per day (that day's latest), keyed by date
+function dailyMap(id){
+  const m=new Map();
+  for(const r of (byStation.get(id)||[])){
+    if(r.f) continue;
+    const d=r.t.slice(0,10), p=m.get(d);
+    if(!p||r.t>p.t) m.set(d,r);
+  }
+  return m;
+}
+
+function initCompare(){
+  const host=document.getElementById("cmpsel");
+  host.innerHTML="";
+  for(let i=0;i<3;i++){
+    const box=document.createElement("div"); box.className="cmpone";
+    const dot=document.createElement("i"); dot.className="badge";
+    dot.style.background=cmpColor(i); dot.textContent=CMPKEY[i];
+    const sel=document.createElement("select");
+    sel.innerHTML='<option value="">— yok —</option>'+
+      DATA.stations.map(s=>`<option value="${s.id}">${s.ad}</option>`).join("");
+    sel.value=cmp[i]||"";
+    sel.onchange=e=>{cmp[i]=e.target.value?+e.target.value:null; guard("karşılaştırma",renderCompare);};
+    box.appendChild(dot); box.appendChild(sel); host.appendChild(box);
+  }
+  const sw=(id,mode)=>document.getElementById(id).onclick=()=>{
+    cmpView=mode;
+    document.getElementById("cmp-season").classList.toggle("on",mode==="season");
+    document.getElementById("cmp-series").classList.toggle("on",mode==="series");
+    guard("karşılaştırma",renderCompare);
+  };
+  sw("cmp-season","season"); sw("cmp-series","series");
+  document.getElementById("cmp-season").classList.toggle("on",cmpView==="season");
+  document.getElementById("cmp-series").classList.toggle("on",cmpView==="series");
+  document.getElementById("cmpcsv").onclick=downloadCompareCsv;
+}
+
+// default to the best-covered station in three different basins, so the panel
+// demonstrates itself instead of opening empty
+function defaultCompare(){
+  if(cmp.some(Boolean)) return;
+  // Prefer the plainly-named provincial stations over lighthouse/buoy sites,
+  // which have the longest names and mean nothing to most readers.
+  const pick=b=>{
+    const cand=DATA.stations.filter(s=>s.basin===b)
+      .map(s=>({s,n:(byStation.get(s.id)||[]).filter(r=>!r.f).length}))
+      .filter(x=>x.n>=10);
+    if(!cand.length) return null;
+    const plain=cand.filter(x=>!/[\/]/.test(x.s.ad) && x.s.ad.length<=14);
+    return (plain.length?plain:cand).sort((a,b2)=>b2.n-a.n)[0].s.id;
+  };
+  ["Karadeniz","Akdeniz","Ege"].forEach((b,i)=>{ const id=pick(b); if(id) cmp[i]=id; });
+}
+
+function renderCompare(){
+  const sel=cmpSel();
+  const chart=document.getElementById("cmpchart");
+  const leg=document.getElementById("cmpleg");
+  const stat=document.getElementById("cmpstat");
+  const tab=document.getElementById("cmptab");
+  const tnote=document.getElementById("cmptabnote");
+  leg.innerHTML=sel.map(x=>
+    `<span title="${x.st.ad}"><i class="badge" style="background:${x.color}">${CMPKEY[x.i]}</i>`+
+    `${shortName(x.st.ad,34)}</span>`).join("");
+  if(sel.length<2){
+    chart.innerHTML='<p class="empty">Karşılaştırmak için en az iki istasyon seçin.</p>';
+    stat.innerHTML=""; tab.innerHTML=""; tnote.textContent=""; return;
+  }
+
+  const maps=sel.map(x=>dailyMap(x.id));
+  const shared=[...maps[0].keys()]
+    .filter(d=>maps.every(m=>m.has(d))).sort();
+
+  cmpView==="season" ? drawCmpSeason(sel,chart) : drawCmpSeries(sel,maps,chart);
+
+  // summary is computed on the shared dates only, so the means are comparable
+  stat.innerHTML=sel.map((x,i)=>{
+    const vs=shared.map(d=>maps[i].get(d).v);
+    const mean=vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
+    return `<div title="${x.st.ad}"><b style="color:${x.color}">`+
+           `${mean===null?"—":fmtT(mean)}</b>${CMPKEY[x.i]} · ${shortName(x.st.ad,22)} ort.</div>`;
+  }).join("")+
+  (shared.length?`<div><b>${shared.length}</b>ortak gün</div>`:"");
+
+  renderCompareTable(sel,maps,shared);
+  tnote.textContent=shared.length
+    ? `Yalnızca tüm seçili istasyonlarda ölçüm bulunan ${shared.length} gün listelenir; `+
+      `“fark” en sıcak ile en soğuk arasındaki açıklıktır.`
+    : "Seçili istasyonların ortak ölçüm günü yok.";
+}
+
+function drawCmpSeason(sel,host){
+  const series=sel.map(x=>{
+    const acc=Array.from({length:12},()=>[]);
+    for(const r of (byStation.get(x.id)||[])) if(!r.f) acc[+r.t.slice(5,7)-1].push(r.v);
+    return {name:x.st.ad,color:x.color,
+      pts:acc.map((v,m)=>v.length?{m,y:v.reduce((a,b)=>a+b,0)/v.length}:null).filter(Boolean)};
+  }).filter(s=>s.pts.length);
+  host.innerHTML="";
+  if(!series.length){host.innerHTML='<p class="empty">Ölçüm yok.</p>';return;}
+
+  const P={t:26,r:74,b:28,l:34},W=620,H=320,iw=W-P.l-P.r,ih=H-P.t-P.b;
+  const all=series.flatMap(s=>s.pts.map(p=>p.y));
+  const y0=Math.floor(Math.min(...all)/5)*5, y1=Math.ceil(Math.max(...all)/5)*5;
+  const X=m=>P.l+m/11*iw, Y=v=>P.t+(y1-v)/(y1-y0||1)*ih;
+  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`,width:W,height:H,
+    preserveAspectRatio:"xMidYMid meet",style:"width:100%;height:auto",role:"img",
+    "aria-label":"Seçili istasyonların aylık ortalamaları"});
+  for(let v=y0;v<=y1;v+=5){
+    svg.appendChild(svgEl("line",{x1:P.l,x2:P.l+iw,y1:Y(v),y2:Y(v),
+      stroke:cvar("--grid"),"stroke-width":1}));
+    const t=svgEl("text",{x:P.l-7,y:Y(v)+3,"text-anchor":"end",class:"tick"});
+    t.textContent=v; svg.appendChild(t);
+  }
+  MONTHS.forEach((m,i)=>{ if(i%2) return;
+    const t=svgEl("text",{x:X(i),y:H-P.b+16,"text-anchor":"middle",class:"tick"});
+    t.textContent=m; svg.appendChild(t);
+  });
+  const yl=svgEl("text",{x:P.l-7,y:P.t-11,"text-anchor":"end",class:"alab"});
+  yl.textContent="°C"; svg.appendChild(yl);
+
+  for(const s of series){
+    svg.appendChild(svgEl("path",{d:s.pts.map((p,i)=>(i?"L":"M")+X(p.m)+" "+Y(p.y)).join(" "),
+      fill:"none",stroke:s.color,"stroke-width":2,
+      "stroke-linejoin":"round","stroke-linecap":"round"}));
+    for(const p of s.pts){
+      const c=svgEl("circle",{cx:X(p.m),cy:Y(p.y),r:4,fill:s.color,
+        stroke:cvar("--surface"),"stroke-width":2});
+      c.addEventListener("mousemove",e=>showTip(e,
+        `<b>${s.name}</b><br>${MONTHS[p.m]} ortalaması<br>${fmtT(p.y)}`));
+      c.addEventListener("mouseleave",hideTip);
+      svg.appendChild(c);
+    }
+  }
+  const labs=series.map(s=>{const p=s.pts[s.pts.length-1];
+    return {name:s.name,color:s.color,x:X(p.m),y0:Y(p.y),y:Y(p.y)};})
+    .sort((a,b)=>a.y-b.y);
+  for(let i=1;i<labs.length;i++)
+    if(labs[i].y-labs[i-1].y<13) labs[i].y=labs[i-1].y+13;
+  const over=labs.length?labs[labs.length-1].y-(H-P.b):0;
+  if(over>0) for(const l of labs) l.y-=over;
+  for(const l of labs){
+    if(Math.abs(l.y-l.y0)>1.5)
+      svg.appendChild(svgEl("path",{d:`M${l.x+3} ${l.y0} L${l.x+7} ${l.y}`,
+        stroke:l.color,"stroke-width":1,fill:"none",opacity:.55}));
+    const t=svgEl("text",{x:l.x+9,y:l.y+3,class:"dlab",fill:l.color});
+    t.textContent=l.name.length>14?l.name.slice(0,13)+"…":l.name;
+    svg.appendChild(t);
+  }
+  host.appendChild(svg); ensureHeight(svg,W,H);
+}
+
+function drawCmpSeries(sel,maps,host){
+  host.innerHTML="";
+  const pts=[];
+  sel.forEach((x,i)=>{ for(const[d,r]of maps[i]) pts.push({x,d,r}); });
+  if(!pts.length){host.innerHTML='<p class="empty">Ölçüm yok.</p>';return;}
+  const ts=pts.map(p=>Date.parse(p.d+"T00:00:00Z"));
+  const t0=Math.min(...ts), t1=Math.max(...ts);
+  const vs=pts.map(p=>p.r.v);
+  const y0=Math.floor(Math.min(...vs)/5)*5, y1=Math.ceil(Math.max(...vs)/5)*5;
+  const P={t:14,r:14,b:28,l:34},W=620,H=320,iw=W-P.l-P.r,ih=H-P.t-P.b;
+  const X=t=>P.l+(t1===t0?.5:(t-t0)/(t1-t0))*iw, Y=v=>P.t+(y1-v)/(y1-y0||1)*ih;
+  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`,width:W,height:H,
+    preserveAspectRatio:"xMidYMid meet",style:"width:100%;height:auto",role:"img",
+    "aria-label":"Seçili istasyonların tüm ölçümleri"});
+  for(let v=y0;v<=y1;v+=5){
+    svg.appendChild(svgEl("line",{x1:P.l,x2:P.l+iw,y1:Y(v),y2:Y(v),
+      stroke:cvar("--grid"),"stroke-width":1}));
+    const t=svgEl("text",{x:P.l-7,y:Y(v)+3,"text-anchor":"end",class:"tick"});
+    t.textContent=v; svg.appendChild(t);
+  }
+  const years=[...new Set(pts.map(p=>p.d.slice(0,4)))].sort();
+  for(const y of years){
+    const x=X(Date.parse(y+"-01-01T00:00:00Z"));
+    if(x<P.l-2||x>P.l+iw+2) continue;
+    const t=svgEl("text",{x,y:H-P.b+16,"text-anchor":"middle",class:"tick"});
+    t.textContent=y; svg.appendChild(t);
+  }
+  // dots only: readings are episodic, so a joining line would invent coverage
+  for(const p of pts){
+    const c=svgEl("circle",{cx:X(Date.parse(p.d+"T00:00:00Z")),cy:Y(p.r.v),r:3.5,
+      fill:p.x.color,stroke:cvar("--surface"),"stroke-width":1.2});
+    c.addEventListener("mousemove",e=>showTip(e,
+      `<b>${p.x.st.ad}</b><br>${fmtT(p.r.v)}<br><span class="t">${fmtD(p.r.t)}</span>`));
+    c.addEventListener("mouseleave",hideTip);
+    svg.appendChild(c);
+  }
+  host.appendChild(svg); ensureHeight(svg,W,H);
+}
+
+function renderCompareTable(sel,maps,shared){
+  const tab=document.getElementById("cmptab");
+  const rows=shared.slice().reverse();
+  tab.innerHTML="<thead><tr><th>Tarih</th>"+
+    sel.map(x=>`<th class="n" title="${x.st.ad}">`+
+      `<span class="badge" style="background:${x.color}">${CMPKEY[x.i]}</span></th>`).join("")+
+    '<th class="n">fark</th></tr></thead><tbody>'+
+    rows.map(d=>{
+      const vs=sel.map((x,i)=>maps[i].get(d).v);
+      const spread=Math.max(...vs)-Math.min(...vs);
+      return `<tr><td>${fmtD(d)}</td>`+
+        vs.map(v=>`<td class="n">${v.toFixed(1).replace(".",",")}</td>`).join("")+
+        `<td class="n">${spread.toFixed(1).replace(".",",")}</td></tr>`;
+    }).join("")+"</tbody>";
+}
+
+function downloadCompareCsv(){
+  const sel=cmpSel(); if(sel.length<2) return;
+  const maps=sel.map(x=>dailyMap(x.id));
+  const shared=[...maps[0].keys()].filter(d=>maps.every(m=>m.has(d))).sort();
+  const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const head=["tarih"].concat(sel.map(x=>esc(x.st.ad))).concat(["fark_c"]).join(",");
+  const body=shared.map(d=>{
+    const vs=sel.map((x,i)=>maps[i].get(d).v);
+    return [d].concat(vs).concat([(Math.max(...vs)-Math.min(...vs)).toFixed(1)]).join(",");
+  });
+  const url=URL.createObjectURL(new Blob([[head].concat(body).join("\n")],
+    {type:"text/csv;charset=utf-8"}));
+  const a=document.createElement("a");
+  a.href=url; a.download="seatemp_karsilastirma.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+// ---------- table ----------
+function renderTable(){
+  const rows=readingsFor(curDate);
+  document.getElementById("tabnote").textContent=
+    `${fmtD(curDate)} — ${rows.length} istasyon. Başlığa tıklayarak sıralayın.`;
+  const cols=[["ad","İstasyon"],["basin","Deniz"],["il","İl"],
+              ["temp","°C"],["t","Ölçüm zamanı"]];
+  const val=(r,k)=>k==="temp"?r.v:k==="t"?r.t:r.st[k];
+  rows.sort((a,b)=>{
+    const x=val(a,sortKey),y=val(b,sortKey);
+    return (x<y?-1:x>y?1:0)*sortDir;
+  });
+  const tab=document.getElementById("tab");
+  tab.innerHTML=
+    "<thead><tr>"+cols.map(([k,l])=>
+      `<th data-k="${k}" class="${k==='temp'?'n':''}">${l}${sortKey===k?(sortDir>0?" ↑":" ↓"):""}</th>`
+    ).join("")+"</tr></thead><tbody>"+
+    rows.map(r=>`<tr>
+      <td>${r.st.ad}</td><td>${r.st.basin}</td><td>${r.st.il}</td>
+      <td class="n">${fmtT(r.v)}${r.f?' <span class="flag">⚑</span>':""}</td>
+      <td>${fmtD(r.t)}</td></tr>`).join("")+"</tbody>";
+  tab.querySelectorAll("th").forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(k===sortKey) sortDir=-sortDir; else {sortKey=k;sortDir=k==="temp"?-1:1;}
+    renderTable();
+  });
+}
+</script>
+</body>
+</html>
